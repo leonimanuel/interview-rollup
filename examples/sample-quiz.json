@@ -1,0 +1,44 @@
+{
+  "title": "Multi-tenant permits service",
+  "role": "Senior Platform Engineer",
+  "angle": "systems design",
+  "questions": [
+    {
+      "type": "pick",
+      "prompt": "A permits service used by 40 city agencies, each seeing only its own applications. Tick what v1 needs.",
+      "options": [
+        { "label": "Sign-in with roles per agency", "correct": true, "why": "Every request has to know who and which agency before anything else." },
+        { "label": "Row-level permissions on applications", "correct": true, "why": "Isolation enforced in the database, so a missed check in the app can't leak another agency's rows." },
+        { "label": "Append-only audit log", "correct": true, "why": "Public-sector work: who changed what, and when, gets asked for." },
+        { "label": "Workflow states for an application", "correct": true, "why": "Submitted, in review, approved, rejected: the product is the workflow." },
+        { "label": "A separate database per agency", "correct": false, "why": "40 databases to migrate and back up. Row-level security isolates without it; split out later if one agency needs it." },
+        { "label": "One search cluster across all agencies", "correct": false, "why": "A shared index is the easiest place to leak across tenants. Postgres search is enough for v1." },
+        { "label": "Real-time collaborative editing", "correct": false, "why": "Nobody asked for it. Locking an application while it's in review is enough." }
+      ]
+    },
+    {
+      "type": "match",
+      "prompt": "Match each component to its job.",
+      "pairs": [
+        { "left": "API gateway", "right": "Checks the sign-in and rate-limits each agency" },
+        { "left": "Queue", "right": "Absorbs bursts between intake and processing" },
+        { "left": "Workers", "right": "Do the slow steps and scale with queue depth" },
+        { "left": "Postgres + row-level security", "right": "Stores applications and keeps agencies apart" },
+        { "left": "Audit log", "right": "Records who did what, and never changes" }
+      ],
+      "why": "The split is about failure: if the workers fall behind, intake still takes applications."
+    },
+    {
+      "type": "order",
+      "prompt": "One agency reports that submitting an application went from 300 ms to 4 s since this morning. Put your first moves in order.",
+      "items": [
+        "Check whether it's one agency or all of them",
+        "Look at what changed in that window: deploys, config, flags, data size",
+        "Trace one slow request end to end",
+        "Form one hypothesis and test it",
+        "Fix or roll back, then confirm on the same metric"
+      ],
+      "why": "Scope first, then the change, then the evidence. Rolling back before you know the scope can hide the cause."
+    }
+  ]
+}

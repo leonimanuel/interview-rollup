@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --surface: #ffffff; --ink: #1c1c1a; --muted: #6b6a65; --line: #e2e0d9;
+    --accent: #2f5bd3; --accent-ink: #ffffff; --accent-soft: #e7ecfb;
+    --ok: #1d7a49; --ok-soft: #e2f3e9; --bad: #b3261e; --bad-soft: #fbe8e6;
+    --shadow: 0 6px 20px rgba(0,0,0,.14);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141413; --surface: #1e1e1c; --ink: #ecebe6; --muted: #9b9993; --line: #34332f;
+      --accent: #86a3f2; --accent-ink: #10131c; --accent-soft: #232d48;
+      --ok: #62c590; --ok-soft: #1a3326; --bad: #f08b81; --bad-soft: #3a201c;
+      --shadow: 0 6px 20px rgba(0,0,0,.5);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141413; --surface: #1e1e1c; --ink: #ecebe6; --muted: #9b9993; --line: #34332f;
+    --accent: #86a3f2; --accent-ink: #10131c; --accent-soft: #232d48;
+    --ok: #62c590; --ok-soft: #1a3326; --bad: #f08b81; --bad-soft: #3a201c;
+    --shadow: 0 6px 20px rgba(0,0,0,.5);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  .eyebrow { margin: 0 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 0; font-size: 26px; line-height: 1.25; }
+  .meta { margin: 6px 0 28px; color: var(--muted); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card-head { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; color: var(--muted); font-size: 13px; }
+  .num {
+    display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent); font-weight: 600;
+  }
+  h2 { margin: 0 0 6px; font-size: 18px; line-height: 1.4; }
+  .hint { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+
+  .chip {
+    display: block; width: 100%; min-height: 44px; padding: 10px 12px; text-align: left;
+    font: inherit; color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 8px;
+    cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+  }
+  /* On touch screens a swipe scrolls the page; tap-to-place does the moving. */
+  @media (pointer: coarse) { .chip { touch-action: manipulation; } }
+  .chip:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .selected > .chip, .chip.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .dragging { opacity: .45; }
+  .ghost {
+    position: fixed; z-index: 10; margin: 0; pointer-events: none; cursor: grabbing;
+    box-shadow: var(--shadow); border-color: var(--accent);
+  }
+
+  /* order */
+  .order { list-style: none; margin: 0; padding: 0; counter-reset: step; display: grid; gap: 8px; }
+  .order li { counter-increment: step; display: flex; gap: 10px; align-items: center; }
+  .order li::before {
+    content: counter(step); flex: none; width: 24px; text-align: right; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* match */
+  .match { display: grid; gap: 8px; margin-bottom: 12px; }
+  .mrow { display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px; align-items: center; }
+  .left { font-weight: 600; }
+  .slot, .pool { border: 1.5px dashed var(--line); border-radius: 8px; }
+  .slot { min-height: 46px; display: flex; }
+  .slot > .chip { border-style: solid; }
+  .pool { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; min-height: 62px; }
+  .pool > .chip { width: auto; }
+  .pool:empty::before { content: "All placed"; color: var(--muted); font-size: 14px; align-self: center; padding: 0 4px; }
+  .over { border-color: var(--accent); background: var(--accent-soft); }
+  @media (max-width: 520px) { .mrow { grid-template-columns: 1fr; gap: 4px; } .mrow + .mrow { margin-top: 6px; } }
+
+  /* pick */
+  .pick { display: grid; gap: 8px; }
+  .opt {
+    display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start;
+    padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer;
+  }
+  .opt input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--accent); }
+  .opt .why { grid-column: 2; font-size: 14px; color: var(--muted); display: none; }
+  .checked .opt .why { display: block; }
+
+  /* marks after Check */
+  .ok > .chip, .opt.ok, .mrow.ok .slot { border-color: var(--ok); background: var(--ok-soft); }
+  .bad > .chip, .opt.bad, .mrow.bad .slot { border-color: var(--bad); background: var(--bad-soft); }
+  .slot > .chip { background: transparent; }
+
+  .card-foot { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
+  .btn {
+    min-height: 40px; padding: 8px 16px; font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .result { font-weight: 600; }
+  .card[data-state="ok"] .result { color: var(--ok); }
+  .card[data-state="bad"] .result { color: var(--bad); }
+  .explain { margin: 12px 0 0; color: var(--muted); font-size: 15px; }
+
+  .send { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .send p { margin: 0 0 12px; color: var(--muted); }
+  .send-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  details { margin-top: 12px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  pre {
+    white-space: pre-wrap; word-break: break-word; margin: 8px 0 0; padding: 12px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+const QUIZ = /*__QUIZ__*/null;
+
+const el = (tag, cls, txt) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+};
+
+// A shuffled order of 0..n-1 that is never the answer itself.
+function shuffled(n) {
+  let idx;
+  do {
+    idx = [...Array(n).keys()];
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+  } while (n > 1 && idx.every((v, i) => v === i));
+  return idx;
+}
+
+// Pointer drag with a tap fallback. A press that moves under 6px is a tap (a click).
+function draggable(node, { ghost, onMove, onDrop }) {
+  node.addEventListener('pointerdown', down => {
+    if (down.button !== 0) return;
+    let dragging = false, g = null, ox = 0, oy = 0;
+    const move = ev => {
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - down.clientX, ev.clientY - down.clientY) < 6) return;
+        dragging = true;
+        node.classList.add('dragging');
+        if (ghost) {
+          const r = node.getBoundingClientRect();
+          g = node.cloneNode(true);
+          g.classList.add('ghost');
+          g.style.width = r.width + 'px';
+          ox = down.clientX - r.left; oy = down.clientY - r.top;
+          document.body.appendChild(g);
+        }
+      }
+      ev.preventDefault();
+      if (g) { g.style.left = (ev.clientX - ox) + 'px'; g.style.top = (ev.clientY - oy) + 'px'; }
+      if (onMove) onMove(ev);
+    };
+    const up = ev => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      node.classList.remove('dragging');
+      if (g) g.remove();
+      if (!dragging) return;
+      node._dragged = true;
+      setTimeout(() => { node._dragged = false; }, 60);
+      if (ev.type === 'pointerup' && onDrop) onDrop(ev);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  });
+}
+const onTap = (node, fn) => node.addEventListener('click', e => { if (!node._dragged) fn(e); });
+const under = (ev, sel) => { const t = document.elementFromPoint(ev.clientX, ev.clientY); return t && t.closest(sel); };
+
+// Each renderer fills `body` and returns { result(), mark(), text() }.
+const renderers = {
+  order(q, body, dirty) {
+    const list = el('ol', 'order');
+    let selected = null;
+    for (const i of shuffled(q.items.length)) {
+      const li = el('li');
+      li.dataset.i = i;
+      const chip = el('button', 'chip', q.items[i]);
+      chip.type = 'button';
+      li.appendChild(chip);
+      list.appendChild(li);
+      draggable(chip, {
+        onMove(ev) {
+          const t = under(ev, '.order > li');
+          if (!t || t === li || t.parentNode !== list) return;
+          const r = t.getBoundingClientRect();
+          list.insertBefore(li, ev.clientY < r.top + r.height / 2 ? t : t.nextSibling);
+          dirty();
+        },
+      });
+      onTap(chip, () => {
+        if (!selected) { selected = li; li.classList.add('selected'); return; }
+        if (selected !== li) {
+          const rows = [...list.children];
+          list.insertBefore(selected, rows.indexOf(selected) < rows.indexOf(li) ? li.nextSibling : li);
+          dirty();
+        }
+        selected.classList.remove('selected');
+        selected = null;
+      });
+    }
+    body.append(el('p', 'hint', 'Drag into order, or tap an item and then tap where it goes.'), list);
+    const answer = () => [...list.children].map(li => +li.dataset.i);
+    return {
+      result() {
+        const a = answer();
+        const score = a.filter((v, pos) => v === pos).length;
+        return { score, total: a.length, right: score === a.length,
+          detail: score === a.length ? '' : 'Correct order: ' + q.items.map((s, i) => `${i + 1}. ${s}`).join('  ') };
+      },
+      mark() { [...list.children].forEach((li, pos) => li.classList.add(+li.dataset.i === pos ? 'ok' : 'bad')); },
+      text() {
+        return `   My order: ${answer().map(i => q.items[i]).join(' → ')}\n   Correct:  ${q.items.join(' → ')}`;
+      },
+    };
+  },
+
+  match(q, body, dirty) {
+    const rows = el('div', 'match');
+    const pool = el('div', 'pool');
+    pool.dataset.drop = 'pool';
+    let selected = null;
+    const deselect = () => { if (selected) selected.classList.remove('selected'); selected = null; };
+    const slots = q.pairs.map((p, i) => {
+      const row = el('div', 'mrow');
+      const slot = el('div', 'slot');
+      slot.dataset.drop = 'slot';
+      slot.dataset.i = i;
+      row.append(el('div', 'left', p.left), slot);
+      rows.appendChild(row);
+      return slot;
+    });
+    const place = (chip, zone) => {
+      if (zone === pool) { pool.appendChild(chip); dirty(); return; }
+      const occupant = zone.querySelector('.chip');
+      if (occupant === chip) return;
+      if (occupant) (chip.parentNode.classList.contains('slot') ? chip.parentNode : pool).appendChild(occupant);
+      zone.appendChild(chip);
+      dirty();
+    };
+    let over = null;
+    const setOver = z => { if (over) over.classList.remove('over'); over = z; if (over) over.classList.add('over'); };
+    for (const i of shuffled(q.pairs.length)) {
+      const chip = el('button', 'chip', q.pairs[i].right);
+      chip.type = 'button';
+      chip.dataset.i = i;
+      pool.appendChild(chip);
+      draggable(chip, {
+        ghost: true,
+        onMove(ev) { const z = under(ev, '[data-drop]'); setOver(z && body.contains(z) ? z : null); },
+        onDrop(ev) { setOver(null); const z = under(ev, '[data-drop]'); if (z && body.contains(z)) place(chip, z); deselect(); },
+      });
+      onTap(chip, () => {
+        if (selected === chip) { deselect(); return; }
+        if (selected && chip.parentNode.classList.contains('slot')) { place(selected, chip.parentNode); deselect(); return; }
+        deselect();
+        selected = chip;
+        chip.classList.add('selected');
+      });
+    }
+    for (const z of [...slots, pool]) {
+      z.addEventListener('click', e => {
+        if (e.target.closest('.chip') || !selected) return;
+        place(selected, z);
+        deselect();
+      });
+    }
+    body.append(el('p', 'hint', 'Drag each card next to what it matches, or tap a card and then tap its spot.'), rows, pool);
+    const placed = i => { const c = slots[i].querySelector('.chip'); return c ? +c.dataset.i : null; };
+    return {
+      result() {
+        const score = slots.filter((_, i) => placed(i) === i).length;
+        return { score, total: slots.length, right: score === slots.length,
+          detail: score === slots.length ? '' : 'Correct: ' + q.pairs.map(p => `${p.left} → ${p.right}`).join('; ') + '.' };
+      },
+      mark() { slots.forEach((s, i) => s.parentNode.classList.add(placed(i) === i ? 'ok' : 'bad')); },
+      text() {
+        return q.pairs.map((p, i) => {
+          const got = placed(i);
+          return `   ${p.left} → mine: ${got == null ? '(empty)' : q.pairs[got].right} · correct: ${p.right}`;
+        }).join('\n');
+      },
+    };
+  },
+
+  pick(q, body, dirty) {
+    const list = el('div', 'pick');
+    const boxes = [];
+    for (const i of shuffled(q.options.length)) {
+      const o = q.options[i];
+      const label = el('label', 'opt');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.dataset.i = i;
+      box.addEventListener('change', dirty);
+      label.append(box, el('span', '', o.label));
+      if (o.why) label.appendChild(el('span', 'why', o.why));
+      list.appendChild(label);
+      boxes.push(box);
+    }
+    body.append(el('p', 'hint', 'Tick every one it needs.'), list);
+    const right = b => b.checked === q.options[+b.dataset.i].correct;
+    return {
+      result() {
+        const score = boxes.filter(right).length;
+        return { score, total: boxes.length, right: score === boxes.length, detail: '' };
+      },
+      mark() { boxes.forEach(b => b.parentNode.classList.add(right(b) ? 'ok' : 'bad')); },
+      text() {
+        const names = f => q.options.filter(f).map(o => o.label).join(', ') || '(none)';
+        const mine = boxes.filter(b => b.checked).map(b => q.options[+b.dataset.i].label).join(', ') || '(none)';
+        return `   Mine:    ${mine}\n   Correct: ${names(o => o.correct)}`;
+      },
+    };
+  },
+};
+
+const KIND = { order: 'Put in order', match: 'Match', pick: 'Pick the components' };
+
+function build() {
+  const app = document.getElementById('app');
+  if (!QUIZ || !Array.isArray(QUIZ.questions)) {
+    app.append(el('h1', '', 'No quiz here yet'), el('p', 'meta', 'Build this page with quiz/build.py and a quiz JSON file.'));
+    return;
+  }
+  app.append(el('p', 'eyebrow', 'Interview prep'), el('h1', '', QUIZ.title), el('p', 'meta', `${QUIZ.role} · ${QUIZ.angle}`));
+
+  const apis = QUIZ.questions.map((q, n) => {
+    const card = el('section', 'card');
+    const head = el('div', 'card-head');
+    head.append(el('span', 'num', String(n + 1)), el('span', '', KIND[q.type]));
+    const body = el('div');
+    const foot = el('div', 'card-foot');
+    const check = el('button', 'btn', 'Check');
+    check.type = 'button';
+    const result = el('span', 'result');
+    foot.append(check, result);
+    const explain = el('p', 'explain');
+    explain.hidden = true;
+    card.append(head, el('h2', '', q.prompt), body, foot, explain);
+    app.appendChild(card);
+
+    const dirty = () => {
+      if (!card.dataset.state) return;
+      delete card.dataset.state;
+      card.classList.remove('checked');
+      card.querySelectorAll('.ok, .bad').forEach(e => e.classList.remove('ok', 'bad'));
+      result.textContent = '';
+      explain.hidden = true;
+    };
+    const api = renderers[q.type](q, body, dirty);
+    check.addEventListener('click', () => {
+      dirty();
+      const r = api.result();
+      api.mark();
+      card.dataset.state = r.right ? 'ok' : 'bad';
+      card.classList.add('checked');
+      result.textContent = r.right ? 'Right' : `${r.score} of ${r.total} right`;
+      const words = [r.detail, q.why].filter(Boolean).join(' ');
+      explain.textContent = words;
+      explain.hidden = !words;
+    });
+    return api;
+  });
+
+  const send = el('section', 'send');
+  send.append(el('p', '', 'Done? Copy your answers and paste them into your Claude session for coaching.'));
+  const row = el('div', 'send-row');
+  const copy = el('button', 'btn primary', 'Copy my answers');
+  copy.type = 'button';
+  const status = el('span', 'hint');
+  status.style.margin = '0';
+  row.append(copy, status);
+  const details = el('details');
+  details.hidden = true;
+  const pre = el('pre');
+  pre.id = 'answers';
+  details.append(el('summary', '', 'Show the text'), pre);
+  send.append(row, details);
+  app.appendChild(send);
+
+  copy.addEventListener('click', async () => {
+    const lines = [`Interview prep quiz: ${QUIZ.role} · ${QUIZ.angle}`, ''];
+    apis.forEach((api, n) => {
+      const q = QUIZ.questions[n];
+      const r = api.result();
+      lines.push(`${n + 1}. ${q.prompt} (${KIND[q.type].toLowerCase()}; ${r.score} of ${r.total} right)`, api.text(), '');
+    });
+    lines.push('Coach me on these: for each, what landed, what was missing, and a tighter answer in my words.');
+    const text = lines.join('\n');
+    pre.textContent = text;
+    details.hidden = false;
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (_) {
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+      sel.removeAllRanges();
+    }
+    status.textContent = ok ? 'Copied. Paste it into your Claude session.' : 'Copy it from the text below.';
+    if (!ok) details.open = true;
+  });
+}
+build();
+</script>
+</body>
+</html>
