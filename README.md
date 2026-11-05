@@ -1,4 +1,4 @@
-# /interview-prep
+# /interview-rollup
 
 A Claude Code skill for prepping for interviews without leaving what you're building.
 
@@ -10,19 +10,19 @@ it tells you what landed, what was missing, and gives a tighter version in your 
 ## Install
 
 ```bash
-git clone <this repo> ~/interview-prep-skill
-ln -s ~/interview-prep-skill/interview-prep ~/.claude/skills/interview-prep
+git clone <this repo> ~/interview-rollup-skill
+ln -s ~/interview-rollup-skill/interview-rollup ~/.claude/skills/interview-rollup
 ```
 
-Or copy the `interview-prep/` folder into `~/.claude/skills/`. Start a new Claude Code session
+Or copy the `interview-rollup/` folder into `~/.claude/skills/`. Start a new Claude Code session
 so it picks the skill up.
 
 ## Use
 
 ```
-/interview-prep "Senior Platform Engineer" "systems design"
-/interview-prep backend debugging
-/interview-prep "Applied AI Engineer" scaling --quiz
+/interview-rollup "Senior Platform Engineer" "systems design"
+/interview-rollup backend debugging
+/interview-rollup "Applied AI Engineer" scaling --quiz
 ```
 
 - **Default:** up to four multiple-choice question cards in the chat. Pick an option or type
@@ -36,7 +36,7 @@ alone.
 
 ## Drop folder
 
-Put anything useful in `~/interview-prep/` (or set `INTERVIEW_PREP_DIR`): job descriptions,
+Put anything useful in `~/interview-rollup/` (or set `INTERVIEW_ROLLUP_DIR`): job descriptions,
 notes on a company or a round, your resume, a story bank. Each run reads the files that fit the
 role, plus the ones that aren't tied to any role. It works without the folder.
 
@@ -46,7 +46,7 @@ Claude Code. `python3` for `--quiz` (standard library only). See [examples/sampl
 for the quiz format; build it yourself with:
 
 ```bash
-python3 interview-prep/quiz/build.py examples/sample-quiz.json
+python3 interview-rollup/quiz/build.py examples/sample-quiz.json
 ```
 
 ## License

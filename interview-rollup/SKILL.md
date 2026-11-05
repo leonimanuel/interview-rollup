@@ -1,11 +1,11 @@
 ---
-name: interview-prep
-description: A few interview questions for a given role and prep angle, grounded in the work done in this session when there is any. Question cards in the chat by default; --quiz builds a small drag-and-drop page. Coaches each answer. Use only when the user runs /interview-prep.
+name: interview-rollup
+description: A few interview questions for a given role and prep angle, grounded in the work done in this session when there is any. Question cards in the chat by default; --quiz builds a small drag-and-drop page. Coaches each answer. Use only when the user runs /interview-rollup.
 argument-hint: "<role> <angle> [--quiz]"
 disable-model-invocation: true
 ---
 
-# /interview-prep
+# /interview-rollup
 
 Arguments: $ARGUMENTS
 
@@ -17,7 +17,7 @@ Keep everything terse: short lines, no preamble, no closing summary.
 
 ## 1. Context
 
-**Drop folder:** `${INTERVIEW_PREP_DIR:-~/interview-prep}`. Users drop in whatever they have:
+**Drop folder:** `${INTERVIEW_ROLLUP_DIR:-~/interview-rollup}`. Users drop in whatever they have:
 job descriptions, notes on a company or a round, a resume, a story bank.
 
 - List it. Read the file(s) whose name or contents fit the role, plus files that aren't tied
@@ -56,7 +56,7 @@ Send one AskUserQuestion call with up to four questions.
 
 ### `--quiz`: a small page
 
-1. Write up to four questions as JSON to `${TMPDIR:-/tmp}/interview-prep/<role>-<angle>.json`,
+1. Write up to four questions as JSON to `${TMPDIR:-/tmp}/interview-rollup/<role>-<angle>.json`,
    with each question's type chosen to fit the angle:
    - `order`: put the steps in order (debugging, incidents, rollouts, migrations). 3-8 items.
    - `match`: match components to what each is responsible for (systems design). 3-6 pairs.
