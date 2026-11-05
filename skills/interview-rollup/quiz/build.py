@@ -4,7 +4,6 @@
 Usage: build.py quiz.json [--out quiz.html] [--no-open]
 """
 import argparse
-import html
 import json
 import sys
 import webbrowser
@@ -12,61 +11,65 @@ from pathlib import Path
 
 TEMPLATE = Path(__file__).with_name("template.html")
 QUIZ_MARK = "/*__QUIZ__*/null"
-TITLE_MARK = "__TITLE__"
-
-
-def fail(msg):
-    sys.exit(f"build.py: {msg}")
 
 
 def text(value):
     return isinstance(value, str) and value.strip() != ""
 
 
-def validate(quiz):
+def problems(quiz):
+    """Every problem with the quiz, so one run reports them all."""
+    errors = []
+
+    def sized(obj, key, lo, hi, where, what):
+        value = obj.get(key)
+        if not isinstance(value, list) or not lo <= len(value) <= hi:
+            errors.append(f"{where}: '{key}' must hold {lo} to {hi} {what}")
+            return []
+        return value
+
+    def entries(items, where, fields):
+        for e in items:
+            if not isinstance(e, dict) or not all(text(e.get(f)) for f in fields):
+                errors.append(f"{where}: each entry needs " + " and ".join(f"'{f}'" for f in fields))
+                return False
+        return True
+
     if not isinstance(quiz, dict):
-        fail("the file must hold one JSON object")
+        return ["the file must hold one JSON object"]
     for key in ("title", "role", "angle"):
         if not text(quiz.get(key)):
-            fail(f"missing '{key}'")
-    questions = quiz.get("questions")
-    if not isinstance(questions, list) or not 1 <= len(questions) <= 4:
-        fail("'questions' must hold 1 to 4 questions")
+            errors.append(f"missing '{key}'")
 
-    for n, q in enumerate(questions, 1):
+    for n, q in enumerate(sized(quiz, "questions", 1, 4, "quiz", "questions"), 1):
         where = f"question {n}"
         if not isinstance(q, dict):
-            fail(f"{where} must be an object")
-        kind = q.get("type")
-        if kind not in ("order", "match", "pick"):
-            fail(f"{where}: 'type' must be order, match or pick")
+            errors.append(f"{where} must be an object")
+            continue
         if not text(q.get("prompt")):
-            fail(f"{where}: missing 'prompt'")
+            errors.append(f"{where}: missing 'prompt'")
+        kind = q.get("type")
 
         if kind == "order":
-            items = q.get("items")
-            if not isinstance(items, list) or not 3 <= len(items) <= 8 or not all(map(text, items)):
-                fail(f"{where}: 'items' must be 3 to 8 strings, in the correct order")
-            if len(set(items)) != len(items):
-                fail(f"{where}: 'items' must not repeat")
+            items = sized(q, "items", 3, 8, where, "strings, in the correct order")
+            if not all(map(text, items)):
+                errors.append(f"{where}: every item must be text")
+            elif len(set(items)) != len(items):
+                errors.append(f"{where}: 'items' must not repeat")
         elif kind == "match":
-            pairs = q.get("pairs")
-            if not isinstance(pairs, list) or not 3 <= len(pairs) <= 6:
-                fail(f"{where}: 'pairs' must hold 3 to 6 pairs")
-            for p in pairs:
-                if not isinstance(p, dict) or not text(p.get("left")) or not text(p.get("right")):
-                    fail(f"{where}: each pair needs 'left' and 'right'")
-            if len({p["right"] for p in pairs}) != len(pairs):
-                fail(f"{where}: each 'right' must be different")
+            pairs = sized(q, "pairs", 3, 6, where, "pairs")
+            if entries(pairs, where, ("left", "right")) and len({p["right"] for p in pairs}) != len(pairs):
+                errors.append(f"{where}: each 'right' must be different")
+        elif kind == "pick":
+            options = sized(q, "options", 3, 10, where, "options")
+            if entries(options, where, ("label", "why")):
+                if not all(isinstance(o.get("correct"), bool) for o in options):
+                    errors.append(f"{where}: each option needs 'correct' (true or false)")
+                elif not any(o["correct"] for o in options):
+                    errors.append(f"{where}: at least one option must be correct")
         else:
-            options = q.get("options")
-            if not isinstance(options, list) or not 3 <= len(options) <= 10:
-                fail(f"{where}: 'options' must hold 3 to 10 options")
-            for o in options:
-                if not isinstance(o, dict) or not text(o.get("label")) or not isinstance(o.get("correct"), bool):
-                    fail(f"{where}: each option needs 'label' and 'correct' (true or false)")
-            if not any(o["correct"] for o in options):
-                fail(f"{where}: at least one option must be correct")
+            errors.append(f"{where}: 'type' must be order, match or pick")
+    return errors
 
 
 def main():
@@ -79,16 +82,18 @@ def main():
     try:
         quiz = json.loads(args.spec.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        fail(f"no such file: {args.spec}")
+        sys.exit(f"build.py: no such file: {args.spec}")
     except json.JSONDecodeError as e:
-        fail(f"{args.spec} is not valid JSON: {e}")
-    validate(quiz)
+        sys.exit(f"build.py: {args.spec} is not valid JSON: {e}")
+    errors = problems(quiz)
+    if errors:
+        sys.exit("build.py: fix these and run again:\n" + "\n".join(f"  - {e}" for e in errors))
 
     page = TEMPLATE.read_text(encoding="utf-8")
-    if QUIZ_MARK not in page or TITLE_MARK not in page:
-        fail("template.html is missing its placeholders")
+    if QUIZ_MARK not in page:
+        sys.exit("build.py: template.html is missing its quiz placeholder")
     data = json.dumps(quiz, ensure_ascii=False).replace("</", "<\\/")
-    page = page.replace(TITLE_MARK, html.escape(quiz["title"]), 1).replace(QUIZ_MARK, data, 1)
+    page = page.replace(QUIZ_MARK, data, 1)
 
     out = args.out or args.spec.with_suffix(".html")
     out.write_text(page, encoding="utf-8")

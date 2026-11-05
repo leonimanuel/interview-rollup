@@ -3,31 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>__TITLE__</title>
+<title>Interview quiz</title>
 <style>
+  /* Follows the system theme; a host page can force one with data-theme. */
   :root {
-    --bg: #f6f5f1; --surface: #ffffff; --ink: #1c1c1a; --muted: #6b6a65; --line: #e2e0d9;
-    --accent: #2f5bd3; --accent-ink: #ffffff; --accent-soft: #e7ecfb;
-    --ok: #1d7a49; --ok-soft: #e2f3e9; --bad: #b3261e; --bad-soft: #fbe8e6;
-    --shadow: 0 6px 20px rgba(0,0,0,.14);
-    color-scheme: light;
+    color-scheme: light dark;
+    --bg: light-dark(#f6f5f1, #141413);
+    --surface: light-dark(#ffffff, #1e1e1c);
+    --ink: light-dark(#1c1c1a, #ecebe6);
+    --muted: light-dark(#6b6a65, #9b9993);
+    --line: light-dark(#e2e0d9, #34332f);
+    --accent: light-dark(#2f5bd3, #86a3f2);
+    --accent-ink: light-dark(#ffffff, #10131c);
+    --accent-soft: light-dark(#e7ecfb, #232d48);
+    --ok: light-dark(#1d7a49, #62c590);
+    --ok-soft: light-dark(#e2f3e9, #1a3326);
+    --bad: light-dark(#b3261e, #f08b81);
+    --bad-soft: light-dark(#fbe8e6, #3a201c);
+    --shadow: 0 6px 20px light-dark(rgba(0,0,0,.14), rgba(0,0,0,.5));
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #141413; --surface: #1e1e1c; --ink: #ecebe6; --muted: #9b9993; --line: #34332f;
-      --accent: #86a3f2; --accent-ink: #10131c; --accent-soft: #232d48;
-      --ok: #62c590; --ok-soft: #1a3326; --bad: #f08b81; --bad-soft: #3a201c;
-      --shadow: 0 6px 20px rgba(0,0,0,.5);
-      color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #141413; --surface: #1e1e1c; --ink: #ecebe6; --muted: #9b9993; --line: #34332f;
-    --accent: #86a3f2; --accent-ink: #10131c; --accent-soft: #232d48;
-    --ok: #62c590; --ok-soft: #1a3326; --bad: #f08b81; --bad-soft: #3a201c;
-    --shadow: 0 6px 20px rgba(0,0,0,.5);
-    color-scheme: dark;
-  }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
 
   * { box-sizing: border-box; }
   body {
@@ -49,21 +45,21 @@
     background: var(--accent-soft); color: var(--accent); font-weight: 600;
   }
   h2 { margin: 0 0 6px; font-size: 18px; line-height: 1.4; }
-  .hint { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  .hint, .status { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+  .status { margin: 0; }
 
+  /* Touch scrolls the page and moves cards by tapping; a mouse or pen can also drag. */
   .chip {
     display: block; width: 100%; min-height: 44px; padding: 10px 12px; text-align: left;
     font: inherit; color: var(--ink); background: var(--surface);
     border: 1px solid var(--line); border-radius: 8px;
-    cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+    cursor: grab; touch-action: manipulation; user-select: none; -webkit-user-select: none;
   }
-  /* On touch screens a swipe scrolls the page; tap-to-place does the moving. */
-  @media (pointer: coarse) { .chip { touch-action: manipulation; } }
   .chip:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .selected > .chip, .chip.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .chip.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
   .dragging { opacity: .45; }
   .ghost {
-    position: fixed; z-index: 10; margin: 0; pointer-events: none; cursor: grabbing;
+    position: fixed; left: 0; top: 0; z-index: 10; pointer-events: none;
     box-shadow: var(--shadow); border-color: var(--accent);
   }
 
@@ -81,7 +77,7 @@
   .left { font-weight: 600; }
   .slot, .pool { border: 1.5px dashed var(--line); border-radius: 8px; }
   .slot { min-height: 46px; display: flex; }
-  .slot > .chip { border-style: solid; }
+  .slot > .chip { background: transparent; }
   .pool { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; min-height: 62px; }
   .pool > .chip { width: auto; }
   .pool:empty::before { content: "All placed"; color: var(--muted); font-size: 14px; align-self: center; padding: 0 4px; }
@@ -96,12 +92,11 @@
   }
   .opt input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--accent); }
   .opt .why { grid-column: 2; font-size: 14px; color: var(--muted); display: none; }
-  .checked .opt .why { display: block; }
+  .card[data-state] .opt .why { display: block; }
 
-  /* marks after Check */
-  .ok > .chip, .opt.ok, .mrow.ok .slot { border-color: var(--ok); background: var(--ok-soft); }
-  .bad > .chip, .opt.bad, .mrow.bad .slot { border-color: var(--bad); background: var(--bad-soft); }
-  .slot > .chip { background: transparent; }
+  /* marks after Check: each renderer tints the node it grades */
+  .ok { border-color: var(--ok); background: var(--ok-soft); }
+  .bad { border-color: var(--bad); background: var(--bad-soft); }
 
   .card-foot { display: flex; gap: 12px; align-items: center; margin-top: 16px; }
   .btn {
@@ -136,6 +131,8 @@ const el = (tag, cls, txt) => {
   if (txt != null) e.textContent = txt;
   return e;
 };
+const chipButton = txt => { const b = el('button', 'chip', txt); b.type = 'button'; return b; };
+const under = (ev, sel) => { const t = document.elementFromPoint(ev.clientX, ev.clientY); return t && t.closest(sel); };
 
 // A shuffled order of 0..n-1 that is never the answer itself.
 function shuffled(n) {
@@ -147,15 +144,19 @@ function shuffled(n) {
   return idx;
 }
 
-// Pointer drag with a tap fallback. A press that moves under 6px is a tap (a click).
-function draggable(node, { ghost, onMove, onDrop }) {
+// One gesture per press: a press that moves under 6px is a tap; a mouse or pen press that moves
+// further is a drag. Touch never drags (the page scrolls). Keyboard activation arrives as a click.
+function gesture(node, { ghost, onMove, onDrop, onTap }) {
+  node.addEventListener('click', e => { if (e.detail === 0) onTap(); });
   node.addEventListener('pointerdown', down => {
     if (down.button !== 0) return;
-    let dragging = false, g = null, ox = 0, oy = 0;
+    const canDrag = down.pointerType !== 'touch';
+    let moved = false, g = null, ox = 0, oy = 0;
     const move = ev => {
-      if (!dragging) {
+      if (!moved) {
         if (Math.hypot(ev.clientX - down.clientX, ev.clientY - down.clientY) < 6) return;
-        dragging = true;
+        moved = true;
+        if (!canDrag) return;
         node.classList.add('dragging');
         if (ghost) {
           const r = node.getBoundingClientRect();
@@ -166,8 +167,9 @@ function draggable(node, { ghost, onMove, onDrop }) {
           document.body.appendChild(g);
         }
       }
+      if (!canDrag) return;
       ev.preventDefault();
-      if (g) { g.style.left = (ev.clientX - ox) + 'px'; g.style.top = (ev.clientY - oy) + 'px'; }
+      if (g) g.style.transform = `translate(${ev.clientX - ox}px, ${ev.clientY - oy}px)`;
       if (onMove) onMove(ev);
     };
     const up = ev => {
@@ -176,132 +178,131 @@ function draggable(node, { ghost, onMove, onDrop }) {
       window.removeEventListener('pointercancel', up);
       node.classList.remove('dragging');
       if (g) g.remove();
-      if (!dragging) return;
-      node._dragged = true;
-      setTimeout(() => { node._dragged = false; }, 60);
-      if (ev.type === 'pointerup' && onDrop) onDrop(ev);
+      if (ev.type !== 'pointerup') return;
+      if (!moved) onTap();
+      else if (canDrag && onDrop) onDrop(ev);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
   });
 }
-const onTap = (node, fn) => node.addEventListener('click', e => { if (!node._dragged) fn(e); });
-const under = (ev, sel) => { const t = document.elementFromPoint(ev.clientX, ev.clientY); return t && t.closest(sel); };
 
-// Each renderer fills `body` and returns { result(), mark(), text() }.
+// The card picked by a tap, waiting for a second tap to say where it goes.
+function picker() {
+  let current = null;
+  return {
+    get current() { return current; },
+    set(chip) { this.clear(); current = chip; chip.classList.add('selected'); },
+    clear() { if (current) current.classList.remove('selected'); current = null; },
+  };
+}
+
+// Each renderer fills `body` and returns:
+//   grade()  -> [[node to tint, right?], ...]
+//   correct  -> the right answer, shown when it's wrong ('' if the options explain themselves)
+//   text()   -> this answer for the copy-back
 const renderers = {
   order(q, body, dirty) {
     const list = el('ol', 'order');
-    let selected = null;
+    const sel = picker();
     for (const i of shuffled(q.items.length)) {
       const li = el('li');
-      li.dataset.i = i;
-      const chip = el('button', 'chip', q.items[i]);
-      chip.type = 'button';
+      const chip = chipButton(q.items[i]);
+      chip.dataset.i = i;
       li.appendChild(chip);
       list.appendChild(li);
-      draggable(chip, {
+      gesture(chip, {
         onMove(ev) {
           const t = under(ev, '.order > li');
           if (!t || t === li || t.parentNode !== list) return;
           const r = t.getBoundingClientRect();
-          list.insertBefore(li, ev.clientY < r.top + r.height / 2 ? t : t.nextSibling);
+          const ref = ev.clientY < r.top + r.height / 2 ? t : t.nextSibling;
+          if (ref === li || ref === li.nextSibling) return;
+          list.insertBefore(li, ref);
           dirty();
         },
-      });
-      onTap(chip, () => {
-        if (!selected) { selected = li; li.classList.add('selected'); return; }
-        if (selected !== li) {
-          const rows = [...list.children];
-          list.insertBefore(selected, rows.indexOf(selected) < rows.indexOf(li) ? li.nextSibling : li);
-          dirty();
-        }
-        selected.classList.remove('selected');
-        selected = null;
+        onTap() {
+          const picked = sel.current;
+          if (!picked) return sel.set(chip);
+          if (picked !== chip) {
+            const rows = [...list.children], from = picked.parentNode;
+            list.insertBefore(from, rows.indexOf(from) < rows.indexOf(li) ? li.nextSibling : li);
+            dirty();
+          }
+          sel.clear();
+        },
       });
     }
-    body.append(el('p', 'hint', 'Drag into order, or tap an item and then tap where it goes.'), list);
-    const answer = () => [...list.children].map(li => +li.dataset.i);
+    body.append(el('p', 'hint', 'Tap an item, then tap where it goes (or drag with a mouse).'), list);
+    const chips = () => [...list.children].map(li => li.firstChild);
     return {
-      result() {
-        const a = answer();
-        const score = a.filter((v, pos) => v === pos).length;
-        return { score, total: a.length, right: score === a.length,
-          detail: score === a.length ? '' : 'Correct order: ' + q.items.map((s, i) => `${i + 1}. ${s}`).join('  ') };
-      },
-      mark() { [...list.children].forEach((li, pos) => li.classList.add(+li.dataset.i === pos ? 'ok' : 'bad')); },
-      text() {
-        return `   My order: ${answer().map(i => q.items[i]).join(' → ')}\n   Correct:  ${q.items.join(' → ')}`;
-      },
+      grade: () => chips().map((c, pos) => [c, +c.dataset.i === pos]),
+      correct: 'Correct order: ' + q.items.map((s, i) => `${i + 1}. ${s}`).join('  '),
+      text: () => `   My order: ${chips().map(c => c.textContent).join(' → ')}\n   Correct:  ${q.items.join(' → ')}`,
     };
   },
 
   match(q, body, dirty) {
     const rows = el('div', 'match');
     const pool = el('div', 'pool');
-    pool.dataset.drop = 'pool';
-    let selected = null;
-    const deselect = () => { if (selected) selected.classList.remove('selected'); selected = null; };
-    const slots = q.pairs.map((p, i) => {
+    pool.dataset.drop = '';
+    const sel = picker();
+    const slots = q.pairs.map(p => {
       const row = el('div', 'mrow');
       const slot = el('div', 'slot');
-      slot.dataset.drop = 'slot';
-      slot.dataset.i = i;
+      slot.dataset.drop = '';
       row.append(el('div', 'left', p.left), slot);
       rows.appendChild(row);
       return slot;
     });
+    // Put a chip in a zone; a slot's occupant swaps to wherever the chip came from.
     const place = (chip, zone) => {
-      if (zone === pool) { pool.appendChild(chip); dirty(); return; }
-      const occupant = zone.querySelector('.chip');
+      const occupant = zone === pool ? null : zone.querySelector('.chip');
       if (occupant === chip) return;
-      if (occupant) (chip.parentNode.classList.contains('slot') ? chip.parentNode : pool).appendChild(occupant);
+      if (occupant) chip.parentNode.appendChild(occupant);
       zone.appendChild(chip);
       dirty();
     };
     let over = null;
-    const setOver = z => { if (over) over.classList.remove('over'); over = z; if (over) over.classList.add('over'); };
+    const setOver = z => {
+      if (z === over) return;
+      if (over) over.classList.remove('over');
+      over = z;
+      if (z) z.classList.add('over');
+    };
+    const zoneAt = ev => { const z = under(ev, '[data-drop]'); return z && body.contains(z) ? z : null; };
+
     for (const i of shuffled(q.pairs.length)) {
-      const chip = el('button', 'chip', q.pairs[i].right);
-      chip.type = 'button';
+      const chip = chipButton(q.pairs[i].right);
       chip.dataset.i = i;
       pool.appendChild(chip);
-      draggable(chip, {
+      gesture(chip, {
         ghost: true,
-        onMove(ev) { const z = under(ev, '[data-drop]'); setOver(z && body.contains(z) ? z : null); },
-        onDrop(ev) { setOver(null); const z = under(ev, '[data-drop]'); if (z && body.contains(z)) place(chip, z); deselect(); },
-      });
-      onTap(chip, () => {
-        if (selected === chip) { deselect(); return; }
-        if (selected && chip.parentNode.classList.contains('slot')) { place(selected, chip.parentNode); deselect(); return; }
-        deselect();
-        selected = chip;
-        chip.classList.add('selected');
+        onMove: ev => setOver(zoneAt(ev)),
+        onDrop(ev) { setOver(null); const z = zoneAt(ev); if (z) place(chip, z); sel.clear(); },
+        onTap() {
+          const picked = sel.current;
+          if (picked === chip) return sel.clear();
+          if (picked && chip.parentNode !== pool) { place(picked, chip.parentNode); return sel.clear(); }
+          sel.set(chip);
+        },
       });
     }
     for (const z of [...slots, pool]) {
       z.addEventListener('click', e => {
-        if (e.target.closest('.chip') || !selected) return;
-        place(selected, z);
-        deselect();
+        if (!sel.current || e.target.closest('.chip')) return;
+        place(sel.current, z);
+        sel.clear();
       });
     }
-    body.append(el('p', 'hint', 'Drag each card next to what it matches, or tap a card and then tap its spot.'), rows, pool);
-    const placed = i => { const c = slots[i].querySelector('.chip'); return c ? +c.dataset.i : null; };
+    body.append(el('p', 'hint', 'Tap a card, then tap its spot (or drag with a mouse).'), rows, pool);
+    const placed = i => slots[i].querySelector('.chip');
     return {
-      result() {
-        const score = slots.filter((_, i) => placed(i) === i).length;
-        return { score, total: slots.length, right: score === slots.length,
-          detail: score === slots.length ? '' : 'Correct: ' + q.pairs.map(p => `${p.left} → ${p.right}`).join('; ') + '.' };
-      },
-      mark() { slots.forEach((s, i) => s.parentNode.classList.add(placed(i) === i ? 'ok' : 'bad')); },
-      text() {
-        return q.pairs.map((p, i) => {
-          const got = placed(i);
-          return `   ${p.left} → mine: ${got == null ? '(empty)' : q.pairs[got].right} · correct: ${p.right}`;
-        }).join('\n');
-      },
+      grade: () => slots.map((s, i) => [s, +placed(i)?.dataset.i === i]),
+      correct: 'Correct: ' + q.pairs.map(p => `${p.left} → ${p.right}`).join('; ') + '.',
+      text: () => q.pairs.map((p, i) =>
+        `   ${p.left} → mine: ${placed(i)?.textContent ?? '(empty)'} · correct: ${p.right}`).join('\n'),
     };
   },
 
@@ -315,24 +316,17 @@ const renderers = {
       box.type = 'checkbox';
       box.dataset.i = i;
       box.addEventListener('change', dirty);
-      label.append(box, el('span', '', o.label));
-      if (o.why) label.appendChild(el('span', 'why', o.why));
+      label.append(box, el('span', '', o.label), el('span', 'why', o.why));
       list.appendChild(label);
       boxes.push(box);
     }
     body.append(el('p', 'hint', 'Tick every one it needs.'), list);
-    const right = b => b.checked === q.options[+b.dataset.i].correct;
+    const opt = b => q.options[+b.dataset.i];
+    const names = list => list.map(o => o.label).join(', ') || '(none)';
     return {
-      result() {
-        const score = boxes.filter(right).length;
-        return { score, total: boxes.length, right: score === boxes.length, detail: '' };
-      },
-      mark() { boxes.forEach(b => b.parentNode.classList.add(right(b) ? 'ok' : 'bad')); },
-      text() {
-        const names = f => q.options.filter(f).map(o => o.label).join(', ') || '(none)';
-        const mine = boxes.filter(b => b.checked).map(b => q.options[+b.dataset.i].label).join(', ') || '(none)';
-        return `   Mine:    ${mine}\n   Correct: ${names(o => o.correct)}`;
-      },
+      grade: () => boxes.map(b => [b.parentNode, b.checked === opt(b).correct]),
+      correct: '',
+      text: () => `   Mine:    ${names(boxes.filter(b => b.checked).map(opt))}\n   Correct: ${names(q.options.filter(o => o.correct))}`,
     };
   },
 };
@@ -345,9 +339,10 @@ function build() {
     app.append(el('h1', '', 'No quiz here yet'), el('p', 'meta', 'Build this page with quiz/build.py and a quiz JSON file.'));
     return;
   }
+  document.title = QUIZ.title;
   app.append(el('p', 'eyebrow', 'Interview prep'), el('h1', '', QUIZ.title), el('p', 'meta', `${QUIZ.role} · ${QUIZ.angle}`));
 
-  const apis = QUIZ.questions.map((q, n) => {
+  const questions = QUIZ.questions.map((q, n) => {
     const card = el('section', 'card');
     const head = el('div', 'card-head');
     head.append(el('span', 'num', String(n + 1)), el('span', '', KIND[q.type]));
@@ -362,27 +357,31 @@ function build() {
     card.append(head, el('h2', '', q.prompt), body, foot, explain);
     app.appendChild(card);
 
+    // Any change after a Check clears its marks.
     const dirty = () => {
       if (!card.dataset.state) return;
       delete card.dataset.state;
-      card.classList.remove('checked');
       card.querySelectorAll('.ok, .bad').forEach(e => e.classList.remove('ok', 'bad'));
       result.textContent = '';
       explain.hidden = true;
     };
     const api = renderers[q.type](q, body, dirty);
+    const grade = () => {
+      const marks = api.grade();
+      const score = marks.filter(([, ok]) => ok).length;
+      return { marks, score, total: marks.length, right: score === marks.length };
+    };
     check.addEventListener('click', () => {
       dirty();
-      const r = api.result();
-      api.mark();
-      card.dataset.state = r.right ? 'ok' : 'bad';
-      card.classList.add('checked');
-      result.textContent = r.right ? 'Right' : `${r.score} of ${r.total} right`;
-      const words = [r.detail, q.why].filter(Boolean).join(' ');
+      const g = grade();
+      g.marks.forEach(([node, ok]) => node.classList.add(ok ? 'ok' : 'bad'));
+      card.dataset.state = g.right ? 'ok' : 'bad';
+      result.textContent = g.right ? 'Right' : `${g.score} of ${g.total} right`;
+      const words = [g.right ? '' : api.correct, q.why].filter(Boolean).join(' ');
       explain.textContent = words;
       explain.hidden = !words;
     });
-    return api;
+    return { q, api, grade };
   });
 
   const send = el('section', 'send');
@@ -390,23 +389,20 @@ function build() {
   const row = el('div', 'send-row');
   const copy = el('button', 'btn primary', 'Copy my answers');
   copy.type = 'button';
-  const status = el('span', 'hint');
-  status.style.margin = '0';
+  const status = el('span', 'status');
   row.append(copy, status);
   const details = el('details');
   details.hidden = true;
   const pre = el('pre');
-  pre.id = 'answers';
   details.append(el('summary', '', 'Show the text'), pre);
   send.append(row, details);
   app.appendChild(send);
 
   copy.addEventListener('click', async () => {
     const lines = [`Interview prep quiz: ${QUIZ.role} · ${QUIZ.angle}`, ''];
-    apis.forEach((api, n) => {
-      const q = QUIZ.questions[n];
-      const r = api.result();
-      lines.push(`${n + 1}. ${q.prompt} (${KIND[q.type].toLowerCase()}; ${r.score} of ${r.total} right)`, api.text(), '');
+    questions.forEach(({ q, api, grade }, n) => {
+      const g = grade();
+      lines.push(`${n + 1}. ${q.prompt} (${KIND[q.type].toLowerCase()}; ${g.score} of ${g.total} right)`, api.text(), '');
     });
     lines.push('Coach me on these: for each, what landed, what was missing, and a tighter answer in my words.');
     const text = lines.join('\n');
@@ -416,11 +412,11 @@ function build() {
     try { await navigator.clipboard.writeText(text); ok = true; } catch (_) {
       const range = document.createRange();
       range.selectNodeContents(pre);
-      const sel = getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
+      const s = getSelection();
+      s.removeAllRanges();
+      s.addRange(range);
       try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
-      sel.removeAllRanges();
+      s.removeAllRanges();
     }
     status.textContent = ok ? 'Copied. Paste it into your Claude session.' : 'Copy it from the text below.';
     if (!ok) details.open = true;

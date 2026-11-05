@@ -20,13 +20,14 @@ Keep everything terse: short lines, no preamble, no closing summary.
 **Drop folder:** `${INTERVIEW_ROLLUP_DIR:-~/interview-rollup}`. Users drop in whatever they have:
 job descriptions, notes on a company or a round, a resume, a story bank.
 
-- List it. Read the file(s) whose name or contents fit the role, plus files that aren't tied
-  to any one role (resume, CV, notes, stories). Read at most five.
+- List it once. From the names alone, pick the file(s) that fit the role, plus files that
+  aren't tied to any one role (resume, CV, notes, stories). Read at most five, in one parallel
+  batch, and only the first ~200 lines of a long one.
 - If the folder is missing or empty, carry on without it.
 - Say in one line which files you used, or that you used none.
 
-**This session:** look at what was actually done here: files changed, decisions and their
-tradeoffs, numbers, what broke and how it was caught.
+**This session:** from this conversation, with no tool calls, note what was actually done:
+the changes, decisions and their tradeoffs, numbers, what broke and how it was caught.
 
 - If there is real work, every question treats it as one component of a bigger system the role
   would own, seen through the angle. For example, a permissions table built today becomes "the
@@ -56,8 +57,8 @@ Send one AskUserQuestion call with up to four questions.
 
 ### `--quiz`: a small page
 
-1. Write up to four questions as JSON to `${TMPDIR:-/tmp}/interview-rollup/<role>-<angle>.json`,
-   with each question's type chosen to fit the angle:
+1. Write up to four questions as JSON to `${TMPDIR:-/tmp}/interview-rollup/quiz.json`, with
+   each question's type chosen to fit the angle:
    - `order`: put the steps in order (debugging, incidents, rollouts, migrations). 3-8 items.
    - `match`: match components to what each is responsible for (systems design). 3-6 pairs.
    - `pick`: tick the components a service needs, out of plausible ones (whiteboard rounds).
@@ -74,8 +75,8 @@ Send one AskUserQuestion call with up to four questions.
    Write `items` in the correct order and `pairs` correctly matched; the page shuffles them.
 
 2. Run `python3 ${CLAUDE_SKILL_DIR}/quiz/build.py <that file>`. It checks the shape, writes
-   the HTML next to the JSON and opens it in the browser. If it rejects the file, fix the JSON and
-   run it again.
+   `quiz.html` next to the JSON and opens it in the browser. If it rejects the file, it lists
+   every problem at once: fix them all and run it again.
 3. If an Artifact tool is available, also publish the built HTML with it (following that
    tool's own rules) and give the link.
 4. Tell the user in one line: answer on the page, press Check, then "Copy my answers" and paste
