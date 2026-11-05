@@ -9,13 +9,23 @@ it tells you what landed, what was missing, and gives a tighter version in your 
 
 ## Install
 
-```bash
-git clone <this repo> ~/interview-rollup-skill
-ln -s ~/interview-rollup-skill/interview-rollup ~/.claude/skills/interview-rollup
+As a Claude Code plugin:
+
+```
+/plugin marketplace add leonimanuel/interview-rollup
+/plugin install interview-rollup@interview-rollup
 ```
 
-Or copy the `interview-rollup/` folder into `~/.claude/skills/`. Start a new Claude Code session
-so it picks the skill up.
+With the [skills CLI](https://skills.sh):
+
+```bash
+npx skills add leonimanuel/interview-rollup
+```
+
+Or by hand: copy `skills/interview-rollup/` into `~/.claude/skills/`.
+
+It's built for Claude Code: it asks through Claude Code's question cards and finds its quiz
+builder through `${CLAUDE_SKILL_DIR}`.
 
 ## Use
 
@@ -55,7 +65,7 @@ Claude Code. `python3` for `--quiz` (standard library only). See [examples/sampl
 for the quiz format; build it yourself with:
 
 ```bash
-python3 interview-rollup/quiz/build.py examples/sample-quiz.json
+python3 skills/interview-rollup/quiz/build.py examples/sample-quiz.json
 ```
 
 ## License

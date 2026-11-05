@@ -1,0 +1,21 @@
+{
+  "name": "interview-rollup",
+  "owner": {
+    "name": "Leon Malisov"
+  },
+  "metadata": {
+    "description": "Interview prep from the work you just did in Claude Code",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "interview-rollup",
+      "description": "A few interview questions for a role and an angle, grounded in this session's work: question cards, or a drag-and-drop quiz page with --quiz. Coaches each answer.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/interview-rollup"
+      ]
+    }
+  ]
+}
