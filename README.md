@@ -34,6 +34,15 @@ so it picks the skill up.
 If the session hasn't done any real work yet, the questions come from the role and the angle
 alone.
 
+`/interview-rollup SWE systems design --quiz` at the end of a session that built a
+story-following feature: four questions grown from that work, as a page.
+
+![The quiz page beside the session it came from](docs/quiz.webp)
+
+Run with no arguments, it asks for the role and the angle first.
+
+![The skill asking for a role and an angle](docs/cards.webp)
+
 ## Drop folder
 
 Put anything useful in `~/interview-rollup/` (or set `INTERVIEW_ROLLUP_DIR`): job descriptions,
